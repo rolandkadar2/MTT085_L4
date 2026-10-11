@@ -1,0 +1,747 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Newton's Law of Viscosity</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+<style>
+/* Layout: a lab bench in three columns (flow cell | controls and gauges | the two plots),
+   with the stress tensor as a full-width strip underneath. Stacks to one column on phones. */
+:root{
+  --bg:#f3f5f9; --panel:#ffffff; --ink:#141b33; --muted:#5b6482; --line:#d5dae6;
+  --accent:#2f35c9;            /* title blue of the lecture slides */
+  --vel:#0c9c8a;               /* velocity */
+  --stress:#c2420e;            /* shear stress */
+  --fluid:#e9eef2; --plate:#141b33;
+  --good:#16794a; --good-bg:#dff3e8; --bad:#b3261e; --bad-bg:#fbe4e2;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --math:"STIX Two Text","Cambria Math","Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1322; --panel:#181d31; --ink:#e8ebf6; --muted:#9aa3c2; --line:#2e3552;
+  --accent:#8f96ff; --vel:#3fd0bd; --stress:#ff9a6b; --fluid:#222943; --plate:#e8ebf6;
+  --good:#5fd69b; --good-bg:#143326; --bad:#ff8f86; --bad-bg:#3d1a19; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1322; --panel:#181d31; --ink:#e8ebf6; --muted:#9aa3c2; --line:#2e3552;
+  --accent:#8f96ff; --vel:#3fd0bd; --stress:#ff9a6b; --fluid:#222943; --plate:#e8ebf6;
+  --good:#5fd69b; --good-bg:#143326; --bad:#ff8f86; --bad-bg:#3d1a19; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:20px;padding-block:22px 28px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+h1{margin:0;font-size:1.55rem;font-weight:600;color:var(--accent);text-wrap:balance}
+h2{margin:0;font-size:.74rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bench{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.9fr) minmax(0,1.6fr);gap:16px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--sans);fill:var(--ink)}
+svg .m{font-family:var(--math);font-style:italic}
+.m{font-family:var(--math);font-style:italic}
+.gd{position:relative;font-family:var(--math);font-style:italic}
+.gd::after{content:"";position:absolute;left:52%;top:.1em;width:.14em;height:.14em;border-radius:50%;background:currentColor}
+.eq{font-family:var(--math);font-size:1.2rem;display:flex;flex-wrap:wrap;gap:4px 28px;align-items:center}
+.frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1.15}
+.frac > span:first-child{border-bottom:1px solid var(--ink);padding-inline:3px}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tabs button{border:1px solid var(--line);border-bottom:3px solid transparent;border-radius:6px 6px 0 0;background:transparent;color:var(--muted);font-size:1.12rem;font-weight:600;padding:8px 16px}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--accent);border-bottom-color:var(--accent)}
+.band{fill:var(--accent);opacity:.16}
+.eqs{font-family:var(--math);font-size:1rem;display:flex;flex-direction:column;gap:12px;overflow-x:auto;padding-bottom:2px}
+.eqs>span{white-space:nowrap}
+#viscPanel svg{max-width:460px}
+@media (min-width:641px){ .bench.flows{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)} .bench.flows #ctlPanel{grid-column:2;grid-row:1 / span 2} .bench.flows #viscPanel{grid-column:1;grid-row:2} }
+.eqs sup,.eq sup{font-size:.7em}
+.doc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:26px 38px}
+.doc section{display:flex;flex-direction:column;gap:10px;min-width:0}
+.doc p,.doc li{margin:0;max-width:65ch} .doc ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:5px}
+/* controls */
+.modes{display:flex;flex-wrap:wrap;gap:6px 22px;font-weight:500}
+.modes label{display:inline-flex;gap:7px;align-items:center;cursor:pointer}
+input[type=radio]{accent-color:var(--accent);margin:0}
+.stack{display:flex;flex-direction:column;gap:14px}
+.gauge.full{grid-column:1 / -1}
+button.block{width:100%}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl label{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.ctl output{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
+.scale{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);position:relative;height:1.2em}
+.scale span.mid{position:absolute;transform:translateX(-50%)}
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gauge{border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0}
+.gauge .k{font-size:.8rem;color:var(--muted)}
+.gauge .v{font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.gauge.s .v{color:var(--stress)}
+.note{margin:0;font-size:.82rem;color:var(--muted)}
+
+/* plots + actions */
+.plots{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.plots figure{margin:0;min-width:0}
+.plots figcaption{font-weight:600;font-size:.9rem;margin-bottom:2px}
+.grid line{stroke:var(--line);stroke-width:1}
+.axis{stroke:var(--ink);stroke-width:1.4;fill:none}
+.tick{font-size:12px;fill:var(--muted)}
+.axt{font-size:13.5px}
+.rec{fill:var(--accent)} .recline{stroke:var(--accent);stroke-width:1.3;fill:none;opacity:.55}
+.live{fill:none;stroke-width:2}
+.model{fill:none;stroke:var(--muted);stroke-width:2}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.status{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-weight:600;
+  background:var(--bad-bg);color:var(--bad)}
+.status::before{content:"";width:9px;height:9px;border-radius:50%;border:2px solid currentColor}
+.status.ok{background:var(--good-bg);color:var(--good)}
+.status.ok::before{content:"✓";border:0;width:auto;height:auto;line-height:1}
+button{font:inherit;font-weight:600;border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--ink);background:transparent;color:var(--ink)}
+button.primary{background:var(--ink);color:var(--panel)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#msg{font-size:.85rem;color:var(--muted);min-height:1.3em}
+
+/* tensor strip */
+.scroll{overflow-x:auto}
+.tensor{display:flex;align-items:flex-start;gap:12px;font-family:var(--math);font-size:1.05rem;width:max-content;padding-bottom:4px}
+.term{display:flex;flex-direction:column;align-items:center;gap:6px}
+.term small{font-family:var(--sans);font-size:.74rem;color:var(--muted);text-align:center;border-top:1px solid var(--line);padding-top:4px;align-self:stretch}
+.row{display:flex;align-items:center;gap:8px;min-height:5.4em;white-space:nowrap}
+.mat{display:inline-grid;grid-template-columns:repeat(3,auto);gap:.3em 1em;padding:.35em .7em;justify-items:center;
+  border-inline:1.5px solid var(--ink);border-radius:.9em / 50%;font-variant-numeric:tabular-nums}
+.mat b{font-weight:500;color:var(--stress);font-style:normal}
+.mat i.z{font-style:normal;color:var(--muted)}
+.op{align-self:flex-start;display:flex;align-items:center;min-height:5.4em}
+footer{font-size:.8rem;color:var(--muted)}
+
+@media (max-width:1050px){ .bench{grid-template-columns:1fr 1fr} .bench .wide{grid-column:1 / -1} }
+@media (max-width:640px){ .bench{grid-template-columns:1fr} .plots{grid-template-columns:1fr} .wrap{padding-inline:16px} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="tabs" role="tablist" aria-label="Pages">
+      <button role="tab" id="tabLaw" aria-selected="true">Newton's law of viscosity</button>
+      <button role="tab" id="tabFlows" aria-selected="false">Example flows</button>
+      <button role="tab" id="tabEq" aria-selected="false">Equations</button>
+    </div>
+    <div class="modes" id="modes" role="radiogroup" aria-label="Fluid type">
+      <label><input type="radio" name="mode" id="mN" value="N" checked> Newtonian fluid</label>
+      <label><input type="radio" name="mode" id="mNN" value="NN"> non-Newtonian fluid</label>
+    </div>
+  </header>
+
+  <div class="bench" id="bench">
+    <!-- flow cell -->
+    <section class="panel">
+      <h2 id="cellTitle">Simple shear between two infinite parallel plates</h2>
+      <svg id="cell" viewBox="0 20 470 280" role="img" aria-label="Velocity and shear stress distributions between a moving upper plate and a fixed lower plate">
+        <rect id="fluid" x="80" width="330" fill="var(--fluid)"/>
+        <polygon id="prof" fill="var(--vel)" opacity=".16"/>
+        <polyline id="profline" fill="none" stroke="var(--vel)" stroke-width="2"/>
+        <g id="varrows"></g>
+        <polygon id="sprof" fill="var(--stress)" opacity=".14"/>
+        <g id="slines"></g>
+        <polyline id="sline" fill="none" stroke="var(--stress)" stroke-width="2"/>
+        <line id="topplate" x1="80" x2="410" stroke="var(--plate)" stroke-width="3.5"/>
+        <line id="toptex" x1="80" x2="410" stroke="var(--muted)" stroke-width="5" stroke-dasharray="2 16"/>
+        <line x1="80" x2="410" y1="250" y2="250" stroke="var(--plate)" stroke-width="3.5"/>
+        <g stroke="var(--plate)" stroke-width="1.3" id="hatch"></g>
+        <g id="vplate"></g>
+        <g id="sarrow"></g>
+        <g id="hdim"></g>
+        <g id="axes"></g>
+        <text x="60" y="270" class="m" font-size="17">x</text><text x="69" y="274" font-size="11">1</text>
+        <text x="12" y="212" class="m" font-size="17">x</text><text x="21" y="216" font-size="11">2</text>
+        <text id="vlabel" class="m" font-size="18" style="fill:var(--vel)"></text>
+      </svg>
+      <svg id="cell2" viewBox="0 30 510 275" role="img" aria-label="Velocity and shear stress distributions between two moving plates with a pressure difference" hidden></svg>
+      <p class="note" style="display:flex;flex-wrap:wrap;gap:2px 22px"><span style="color:var(--stress)">Shear stress distribution, <span id="legA" hidden>|</span><span class="m">σ</span><sub>12</sub><span id="legB" hidden>|</span>(<span class="m">t, x</span><sub>2</sub>)</span><span style="color:var(--vel)">Velocity distribution, <span class="m">v</span><sub>1</sub>(<span class="m">t, x</span><sub>2</sub>)</span></p>
+      <div class="actions" id="flowActions" hidden>
+        <span class="status" id="status2" aria-live="polite">Transient</span>
+        <button id="rest2">Start from rest</button>
+      </div>
+      <div>
+        <h2>1D constitutive equation</h2>
+        <div class="eq" style="margin-top:8px">
+          <span id="eqN"><span class="m">σ</span><sub>12</sub> = <span class="m">η</span> <span class="gd">γ</span></span>
+          <span id="eqNN" hidden><span class="m">σ</span><sub>12</sub> = <span class="m">η</span>(<span class="gd">γ</span>) <span class="gd">γ</span></span>
+          <span><span class="gd">γ</span> = <span class="frac"><span>d<span class="m">v</span><sub>1</sub></span><span>d<span class="m">x</span><sub>2</sub></span></span> = <span class="frac"><span class="m">v</span><span class="m">h</span></span> <span style="font-family:var(--sans);font-size:.8rem;color:var(--muted)">(at steady state)</span></span>
+          <span id="eqCY" hidden><span class="m">η</span>(<span class="gd">γ</span>) = <span class="m">η</span><sub>0</sub> [1 + (<span class="m">λ</span><span class="gd">γ</span>)<sup><span class="m">a</span></sup>]<sup>(<span class="m">n</span>−1)/<span class="m">a</span></sup> <span style="font-family:var(--sans);font-size:.8rem;color:var(--muted)">(Carreau–Yasuda)</span></span>
+          <span id="eqN12" hidden><span class="m">N</span><sub>1</sub> = <span class="m">σ</span><sub>11</sub> − <span class="m">σ</span><sub>22</sub> = 2<span class="m">J</span><sub>e</sub><span class="m">σ</span><sub>12</sub><sup>2</sup>, &nbsp; <span class="m">N</span><sub>2</sub> = <span class="m">σ</span><sub>22</sub> − <span class="m">σ</span><sub>33</sub> = −<span class="m">N</span><sub>1</sub>/10 <span style="font-family:var(--sans);font-size:.8rem;color:var(--muted)">(normal stresses, <span class="m">J</span><sub>e</sub> = 10⁻⁴ Pa⁻¹)</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- controls -->
+    <section class="panel" id="ctlPanel">
+      <h2 id="ctlTitle">Controls</h2>
+      <div class="stack" id="flowCtl">
+        <div class="stack" id="lawCtl">
+        <div class="ctl">
+          <label for="v"><span>Upper plate velocity, <span class="m">v</span></span><output id="vOut"></output></label>
+          <input type="range" id="v" min="0.01" max="1" step="0.01" value="0.5">
+          <div class="scale"><span id="vLo">0.01 m/s</span><span id="vHi">1 m/s</span></div>
+        </div>
+        <div class="ctl">
+          <label for="h"><span>Gap between plates, <span class="m">h</span></span><output id="hOut"></output></label>
+          <input type="range" id="h" min="0.1" max="1" step="0.01" value="0.6">
+          <div class="scale"><span>0.1 mm</span><span>1 mm</span></div>
+        </div>
+        </div>
+        <div class="stack" id="flowsCtl" hidden>
+          <div class="ctl">
+            <label for="vU"><span>Upper plate velocity, <span class="m">v</span><sup>upper</sup></span><output id="vUOut"></output></label>
+            <input type="range" id="vU" min="-1" max="1" step="0.01" value="0.5">
+            <div class="scale"><span>−1 m/s</span><span>1 m/s</span></div>
+          </div>
+          <div class="ctl">
+            <label for="vL"><span>Lower plate velocity, <span class="m">v</span><sup>lower</sup></span><output id="vLOut"></output></label>
+            <input type="range" id="vL" min="-1" max="1" step="0.01" value="0">
+            <div class="scale"><span>−1 m/s</span><span>1 m/s</span></div>
+          </div>
+          <div class="ctl">
+            <label for="h2"><span>Gap between plates, <span class="m">h</span></span><output id="h2Out"></output></label>
+            <input type="range" id="h2" min="0.1" max="1" step="0.01" value="0.6">
+            <div class="scale"><span>0.1 mm</span><span>1 mm</span></div>
+          </div>
+          <div class="ctl">
+            <label for="p1"><span>Pressure at left end, <span class="m">p</span><sub>1</sub></span><output id="p1Out"></output></label>
+            <input type="range" id="p1" min="0" max="1" step="0.005" value="0.4">
+            <div class="scale"><span>0</span><span id="pHi1"></span></div>
+          </div>
+          <div class="ctl">
+            <label for="p2"><span>Pressure at right end, <span class="m">p</span><sub>2</sub></span><output id="p2Out"></output></label>
+            <input type="range" id="p2" min="0" max="1" step="0.005" value="0.5">
+            <div class="scale"><span>0</span><span id="pHi2"></span></div>
+          </div>
+        </div>
+        <div class="ctl" id="etaCtl">
+          <label for="eta"><span>Shear viscosity, <span class="m">η</span></span><output id="etaOut"></output></label>
+          <input type="range" id="eta" min="0" max="3" step="0.01" value="1.9">
+          <div class="scale"><span>water</span><span class="mid" style="left:63%">olive oil</span><span>glycerol</span></div>
+        </div>
+        <button id="editBtn" class="block" hidden>Edit non-Newtonian viscosity function</button>
+      </div>
+      <div class="stack" id="editCtl" hidden>
+        <div class="ctl">
+          <label for="cEta"><span>Zero-shear viscosity, <span class="m">η</span><sub>0</sub></span><output id="cEtaOut"></output></label>
+          <input type="range" id="cEta" min="0" max="4" step="0.01" value="2">
+          <div class="scale"><span>1 Pa·s</span><span>10⁴ Pa·s</span></div>
+        </div>
+        <div class="ctl">
+          <label for="cLam"><span>Time constant, <span class="m">λ</span></span><output id="cLamOut"></output></label>
+          <input type="range" id="cLam" min="-3" max="1" step="0.01" value="-1">
+          <div class="scale"><span>0.001 s</span><span>10 s</span></div>
+        </div>
+        <div class="ctl">
+          <label for="cA"><span>Transition parameter, <span class="m">a</span></span><output id="cAOut"></output></label>
+          <input type="range" id="cA" min="0.1" max="4" step="0.05" value="2">
+          <div class="scale"><span>0.1</span><span>4</span></div>
+        </div>
+        <div class="ctl">
+          <label for="cN"><span>Flow index, <span class="m">n</span></span><output id="cNOut"></output></label>
+          <input type="range" id="cN" min="0.01" max="1" step="0.01" value="0.4">
+          <div class="scale"><span>0.01</span><span>1 (Newtonian)</span></div>
+        </div>
+        <button id="backBtn" class="block">Back to flow controls</button>
+      </div>
+      <div class="gauges" id="lawGauges">
+        <div class="gauge s"><div class="k">Shear stress, <span class="m">σ</span><sub>12</sub></div><div class="v" id="gS"></div></div>
+        <div class="gauge"><div class="k">Shear rate, <span class="m">v/h</span></div><div class="v" id="gG"></div></div>
+        <div class="gauge"><div class="k" id="tK">Elapsed time</div><div class="v" id="gT"></div></div>
+        <div class="gauge"><div class="k">Slow motion</div><div class="v" id="gSlow"></div></div>
+        <div class="gauge" id="gN1box" hidden><div class="k">Normal stress diff., <span class="m">N</span><sub>1</sub></div><div class="v" id="gN1"></div></div>
+        <div class="gauge" id="gN2box" hidden><div class="k">Normal stress diff., <span class="m">N</span><sub>2</sub></div><div class="v" id="gN2"></div></div>
+      </div>
+      <div class="gauges" id="flowGauges" hidden>
+        <div class="gauge full"><div class="k">Pressure difference, Δ<span class="m">p</span> = <span class="m">p</span><sub>1</sub> − <span class="m">p</span><sub>2</sub></div><div class="v" id="fDp"></div></div>
+        <div class="gauge s"><div class="k">Shear stress on upper plate</div><div class="v" id="fSU"></div></div>
+        <div class="gauge s"><div class="k">Shear stress on lower plate</div><div class="v" id="fSL"></div></div>
+        <div class="gauge"><div class="k">Largest velocity</div><div class="v" id="fVmax"></div></div>
+        <div class="gauge"><div class="k">Mean velocity</div><div class="v" id="fVmean"></div></div>
+        <div class="gauge"><div class="k" id="fTK">Elapsed time</div><div class="v" id="fT"></div></div>
+        <div class="gauge"><div class="k">Slow motion</div><div class="v" id="fSlow"></div></div>
+      </div>
+    </section>
+
+    <!-- plots -->
+    <section class="panel wide" id="plotsPanel">
+      <h2 id="plotsTitle">Measurements (log–log)</h2>
+      <div class="plots" id="lawPlots">
+        <figure><figcaption>Flow curve</figcaption><svg id="pF" viewBox="0 0 300 250" role="img" aria-label="Flow curve: shear stress against shear rate"></svg></figure>
+        <figure><figcaption>Viscosity function</figcaption><svg id="pV" viewBox="0 0 300 250" role="img" aria-label="Viscosity function: viscosity against shear rate"></svg></figure>
+      </div>
+      <div class="actions">
+        <span class="status" id="status" aria-live="polite">Transient</span>
+        <button class="primary" id="rec" disabled>Record viscosity point</button>
+        <button id="rest">Start from rest</button>
+        <button id="clear">Clear points</button>
+      </div>
+      <div id="msg" aria-live="polite"></div>
+    </section>
+
+    <!-- input viscosity function (example flows) -->
+    <section class="panel" id="viscPanel" hidden>
+      <h2>Input viscosity function</h2>
+      <svg id="pI" viewBox="0 0 300 250" role="img" aria-label="Input viscosity function with the shear rates present in the gap shaded"></svg>
+      <p class="note">Shaded: shear rates present in the gap.</p>
+    </section>
+  </div>
+
+  <section class="panel" id="tensorPanel">
+    <h2>3D constitutive equation, with the current values <span id="tensorWhere">at the fixed plate</span></h2>
+    <div class="ctl" id="probeCtl" style="max-width:420px" hidden>
+      <label for="probe"><span>Position across the gap, <span class="m">x</span><sub>2</sub>/<span class="m">h</span></span><output id="probeOut"></output></label>
+      <input type="range" id="probe" min="0" max="1" step="0.01" value="0">
+      <div class="scale"><span>lower plate</span><span>upper plate</span></div>
+    </div>
+    <div class="scroll"><div class="tensor" id="tensor"></div></div>
+    <p class="note">Stresses in Pa, <span class="m">η</span> in Pa·s, <span class="gd">γ</span> in s⁻¹. <span id="noteN">The elastic contribution is zero for a Newtonian fluid.</span><span id="noteNN" hidden>Elastic contribution from <span class="m">N</span><sub>1</sub> = 2<span class="m">J</span><sub>e</sub><span class="m">σ</span><sub>12</sub>² with <span class="m">J</span><sub>e</sub> = 10⁻⁴ Pa⁻¹, and <span class="m">N</span><sub>2</sub> = −<span class="m">N</span><sub>1</sub>/10.</span></p>
+  </section>
+
+  <section class="panel" id="eqView" hidden>
+    <div class="doc">
+      <section>
+        <h2>Flow</h2>
+        <ul>
+          <li>Two infinite parallel plates, gap <span class="m">h</span>. Only <span class="m">v</span><sub>1</sub>(<span class="m">t, x</span><sub>2</sub>) is non-zero.</li>
+          <li>Incompressible, isothermal, laminar, no slip, no gravity. <span class="m">ρ</span> = 1000 kg/m³.</li>
+        </ul>
+        <div class="eqs">
+          <span><span class="m">ρ</span> <span class="frac"><span>∂<span class="m">v</span><sub>1</sub></span><span>∂<span class="m">t</span></span></span> = <span class="frac"><span>Δ<span class="m">p</span></span><span><span class="m">l</span></span></span> + <span class="frac"><span>∂<span class="m">σ</span><sub>12</sub></span><span>∂<span class="m">x</span><sub>2</sub></span></span>, &nbsp; Δ<span class="m">p</span> = <span class="m">p</span><sub>1</sub> − <span class="m">p</span><sub>2</sub>, &nbsp; <span class="m">l</span> = 10 mm</span>
+          <span><span class="m">v</span><sub>1</sub>(0) = <span class="m">v</span><sup>lower</sup>, &nbsp; <span class="m">v</span><sub>1</sub>(<span class="m">h</span>) = <span class="m">v</span><sup>upper</sup></span>
+        </div>
+        <p>Simple shear (first page): Δ<span class="m">p</span> = 0 and <span class="m">v</span><sup>lower</sup> = 0.</p>
+      </section>
+      <section>
+        <h2>Fluid</h2>
+        <div class="eqs">
+          <span><span class="m">σ</span><sub>12</sub> = <span class="m">η</span>(<span class="gd">γ</span>) <span class="gd">γ</span>, &nbsp; <span class="gd">γ</span> = <span class="frac"><span>∂<span class="m">v</span><sub>1</sub></span><span>∂<span class="m">x</span><sub>2</sub></span></span></span>
+          <span>Newtonian: <span class="m">η</span> = constant</span>
+          <span>Carreau–Yasuda: <span class="m">η</span> = <span class="m">η</span><sub>0</sub> [1 + (<span class="m">λ</span><span class="gd">γ</span>)<sup><span class="m">a</span></sup>]<sup>(<span class="m">n</span>−1)/<span class="m">a</span></sup>, &nbsp; <span class="m">η</span><sub>∞</sub> = 0</span>
+        </div>
+        <ul>
+          <li>Generalised Newtonian fluid: elasticity does not enter the flow calculation.</li>
+          <li>Numerical floor <span class="m">η</span> ≥ 10⁻⁷ Pa·s, because with <span class="m">η</span><sub>∞</sub> = 0 and <span class="m">n</span> near 0 the shear rate is unbounded.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Normal stresses</h2>
+        <div class="eqs">
+          <span><span class="m">N</span><sub>1</sub> = <span class="m">σ</span><sub>11</sub> − <span class="m">σ</span><sub>22</sub> = 2<span class="m">J</span><sub>e</sub><span class="m">σ</span><sub>12</sub><sup>2</sup>, &nbsp; <span class="m">J</span><sub>e</sub> = 10⁻⁴ Pa⁻¹</span>
+          <span><span class="m">N</span><sub>2</sub> = <span class="m">σ</span><sub>22</sub> − <span class="m">σ</span><sub>33</sub> = −<span class="m">N</span><sub>1</sub>/10</span>
+          <span><span class="m">σ</span><sup>e</sup><sub>11</sub> = <span class="m">N</span><sub>1</sub> + <span class="m">N</span><sub>2</sub>, &nbsp; <span class="m">σ</span><sup>e</sup><sub>22</sub> = <span class="m">N</span><sub>2</sub>, &nbsp; <span class="m">σ</span><sup>e</sup><sub>33</sub> = 0</span>
+        </div>
+        <ul>
+          <li>Computed afterwards from the local shear stress; non-Newtonian fluid only.</li>
+          <li>The quadratic law is the low-shear-rate limit and overestimates <span class="m">N</span><sub>1</sub> at high stress. <span class="m">J</span><sub>e</sub> is an order of magnitude for a polymer melt.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Steady state, Newtonian fluid</h2>
+        <div class="eqs">
+          <span><span class="m">v</span><sub>1</sub> = <span class="frac"><span>Δ<span class="m">p</span></span><span>2<span class="m">ηl</span></span></span> <span class="m">x</span><sub>2</sub>(<span class="m">h</span> − <span class="m">x</span><sub>2</sub>) + <span class="m">v</span><sup>lower</sup> + (<span class="m">v</span><sup>upper</sup> − <span class="m">v</span><sup>lower</sup>) <span class="frac"><span><span class="m">x</span><sub>2</sub></span><span><span class="m">h</span></span></span></span>
+          <span><span class="m">σ</span><sub>12</sub> = <span class="frac"><span>Δ<span class="m">p</span></span><span><span class="m">l</span></span></span> (<span class="frac"><span><span class="m">h</span></span><span>2</span></span> − <span class="m">x</span><sub>2</sub>) + <span class="m">η</span> <span class="frac"><span><span class="m">v</span><sup>upper</sup> − <span class="m">v</span><sup>lower</sup></span><span><span class="m">h</span></span></span></span>
+        </div>
+      </section>
+      <section>
+        <h2>Transient</h2>
+        <ul>
+          <li>Inertia only: momentum diffuses from the plates with diffusivity <span class="m">η</span>/<span class="m">ρ</span>. The stress growth of a real polymer melt, set by its relaxation time, is not modelled.</li>
+          <li>Time to steady state, Newtonian start from rest (stress at the fixed plate within 1 %):</li>
+        </ul>
+        <div class="eqs"><span><span class="m">t</span><sub>s</sub> ≈ 0.45 <span class="frac"><span><span class="m">ρh</span><sup>2</sup></span><span><span class="m">η</span></span></span></span></div>
+        <ul>
+          <li>Non-Newtonian: <span class="m">η</span> is replaced by the tangent viscosity d<span class="m">σ</span><sub>12</sub>/d<span class="gd">γ</span>, averaged (geometric mean) over the gap. This sets the playback speed only.</li>
+          <li>“Steady state” on the first page: shear rate at the fixed plate within 1 % of <span class="m">v</span>/<span class="m">h</span>. In the example flows: estimated remaining velocity change below 1 % of the largest velocity.</li>
+          <li>Changing the gap: each layer keeps its velocity at its height; squeeze flow is ignored.</li>
+          <li>Playback is slow motion, 1.5 to 5 s on screen; longer transients are sped up after 5 s.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Numerics and drawing</h2>
+        <ul>
+          <li>Finite differences on 64 intervals across the gap, implicit Euler in time, viscosity taken from the previous time step.</li>
+          <li>First page: positive <span class="m">σ</span><sub>12</sub> is drawn to the left. Example flows: the magnitude |<span class="m">σ</span><sub>12</sub>| is drawn; the component <span class="m">σ</span><sub>12</sub> = <span class="m">η</span> ∂<span class="m">v</span><sub>1</sub>/∂<span class="m">x</span><sub>2</sub> itself changes sign where the velocity gradient does. The plate readouts give the force per area of the fluid on each plate, positive in <span class="m">x</span><sub>1</sub>.</li>
+          <li>First page: arrow lengths follow the sliders (linear velocity for the Newtonian fluid, logarithmic otherwise; logarithmic stress).</li>
+          <li>Example flows: arrow lengths are relative to the largest steady velocity and stress. The pressure sliders end at the Δ<span class="m">p</span> that gives a wall shear rate of 6000 s⁻¹ in a 1 mm gap.</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <footer>Roland Kádár, MTT085; Powered by Claude</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const RHO=1000, HMAX=1e-3, ETA_W=1e-3, N=64;
+const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+// per-mode ranges: plate velocity, and the log10 axis limits of the two plots
+const CFG={
+  N:{vmin:0.01, vmax:1,   vlog:false, x:[1,4],    F:[-2,4],     V:[-3.4,0.4]},
+  NN:{vmin:1e-5, vmax:1.3, vlog:true,  x:[-2,4.2], F:[-2.5,8.5], V:[-5.5,4.5]} };
+
+// ---------- state ----------
+let mode="N", editing=false, cyReady=false;
+let V=0.5, H=0.6e-3, ETA=ETA_W*Math.pow(10,1.9);
+const cy={eta0:100, lam:0.1, a:2, n:0.4};        // Carreau-Yasuda parameters, eta_inf = 0
+const vPos={N:"0.5", NN:"-1.5"};
+const rec={N:[], NN:[]};
+const u=new Float64Array(N+1);                    // velocity at x2 = i*h/N  (m/s)
+let tPhys=0, tScr=0, steady=false, texOff=0;
+
+// ---------- material ----------
+const ETA_FLOOR=1e-7;   // numerical floor (Pa·s): with eta_inf = 0 and n near 0 the flow curve saturates and the shear rate would be unbounded
+const etaOf=g=> mode==="N" ? ETA : Math.max(ETA_FLOOR,cy.eta0*Math.pow(1+Math.pow(cy.lam*Math.abs(g),cy.a),(cy.n-1)/cy.a));
+const sigOf=g=>etaOf(g)*g;
+const fluidKey=()=> mode==="N" ? "N"+ETA.toPrecision(4) : "C"+[cy.eta0,cy.lam,cy.a,cy.n].map(x=>x.toPrecision(4)).join("_");
+const JE=1e-4;                                    // steady-state compliance, Pa^-1 (order of magnitude for a polydisperse melt)
+const N1of=s=>2*JE*s*s, N2of=s=>-0.1*N1of(s);     // N1 = 2 Je sigma12^2, N2 = -N1/10
+
+// ---------- formatting ----------
+const sig=(x,n=3)=>String(parseFloat(x.toPrecision(n)));
+function fStress(x){ if(x<1e-6) return "0 Pa"; if(x<1) return sig(x*1e3)+" mPa"; if(x<1e3) return sig(x)+" Pa"; if(x<1e6) return sig(x/1e3)+" kPa"; if(x<1e9) return sig(x/1e6)+" MPa"; return sig(x/1e9)+" GPa"; }
+function fTime(t){ if(t<1e-12) return "0 ns"; if(t<1e-6) return sig(t*1e9)+" ns"; if(t<1e-3) return sig(t*1e6)+" µs"; if(t<1) return sig(t*1e3)+" ms"; return sig(t)+" s"; }
+function fEta(e){ return e<1 ? sig(e*1e3)+" mPa·s" : sig(e)+" Pa·s"; }
+function fVel(v){ if(mode==="N") return v.toFixed(2)+" m/s"; if(v>=0.1) return sig(v)+" m/s"; if(v>=1e-4) return sig(v*1e3)+" mm/s"; return sig(v*1e6)+" µm/s"; }
+function fRate(g){ return sig(g)+" s⁻¹"; }
+function fBig(x){ if(x>=1e9) return sig(x/1e9,2)+" billion"; if(x>=1e6) return sig(x/1e6,2)+" million"; if(x>=1e4) return Math.round(x/1e3)+" 000"; return sig(x,2); }
+const fSg=(x,f)=> x<0 ? "−"+f(-x) : f(x);
+function fNum(x){ if(!(x>1e-9)) return "0"; if(x>=1e5||x<1e-2){ const e=Math.floor(Math.log10(x)); return sig(x/Math.pow(10,e))+"×10<sup>"+String(e).replace("-","−")+"</sup>"; } return sig(x); }
+
+// ---------- physics: rho dv1/dt = d/dx2( eta(shear rate) dv1/dx2 ), backward Euler with lagged viscosity ----------
+const cp=new Float64Array(N+1), dp=new Float64Array(N+1), ef=new Float64Array(N);
+// generic solver: plates at vL (x2 = 0) and vU (x2 = h), pressure gradient G = (p1 - p2)/l
+function solve(u,H,vL,vU,G,dt){
+  const dy=H/N, r=dt/(RHO*dy*dy), f=dt*G/RHO;
+  u[0]=vL; u[N]=vU;
+  for(let i=0;i<N;i++) ef[i]=etaOf((u[i+1]-u[i])/dy);
+  for(let i=1;i<N;i++){
+    const a=-r*ef[i-1], c=-r*ef[i], b=1-a-c, rhs=u[i]+f-(i===1? a*u[0]:0)-(i===N-1? c*u[N]:0);
+    if(i===1){ cp[1]=c/b; dp[1]=rhs/b; } else { const m=b-a*cp[i-1]; cp[i]=c/m; dp[i]=(rhs-a*dp[i-1])/m; }
+  }
+  u[N-1]=dp[N-1];
+  for(let i=N-2;i>=1;i--) u[i]=dp[i]-cp[i]*u[i+1];
+}
+const step=dt=>solve(u,H,0,V,0,dt);
+// time scale of the transient (1 % at the fixed plate for a start from rest). It uses the tangent viscosity
+// d(sigma)/d(shear rate), averaged over the current profile, so the playback speed follows the fluid as it thins or thickens.
+function tanEta(g){ if(mode==="N") return ETA; const x=Math.pow(cy.lam*Math.abs(g),cy.a); return Math.max(ETA_FLOOR,etaOf(g)*(1+(cy.n-1)*x/(1+x))); }
+function tScaleOf(u,H){ const dy=H/N; let s=0; for(let i=0;i<N;i++) s+=Math.log(tanEta((u[i+1]-u[i])/dy)); return 0.45*RHO*H*H/Math.exp(s/N); }
+const tSteady=()=>tScaleOf(u,H);
+function screenTimeOf(t){ const x=(Math.log10(t)+5.35)/5; return 1.5+3.5*Math.min(1,Math.max(0,x)); }
+const screenTime=()=>screenTimeOf(tSteady());
+function fromRest(){ u.fill(0); u[N]=V; tPhys=0; tScr=0; steady=false; }
+// transients that would run long on screen (nearly flat flow curves) are played progressively faster after 5 s
+const boost=()=> tScr>5 ? Math.pow(2,tScr-5) : 1;
+function velFrac(){ const c=CFG[mode]; return c.vlog ? 0.12+0.88*Math.log10(V/c.vmin)/Math.log10(c.vmax/c.vmin) : V/c.vmax; }
+
+// ---------- SVG helpers ----------
+function arrow(x1,y1,x2,y2,color,w){
+  const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy); if(L<1.5) return "";
+  const ux=dx/L, uy=dy/L, hl=Math.min(8,L*0.6), hw=hl*0.5, bx=x2-ux*hl, by=y2-uy*hl;
+  return `<line x1="${x1}" y1="${y1}" x2="${bx.toFixed(1)}" y2="${by.toFixed(1)}" stroke="${color}" stroke-width="${w||1.8}"/>`+
+         `<polygon fill="${color}" points="${x2.toFixed(1)},${y2.toFixed(1)} ${(bx-uy*hw).toFixed(1)},${(by+ux*hw).toFixed(1)} ${(bx+uy*hw).toFixed(1)},${(by-ux*hw).toFixed(1)}"/>`;
+}
+const X0=245, VPX=160, XS=205, YB=250, HPX=185;
+(function staticCell(){
+  let s=""; for(let x=92;x<=410;x+=14) s+=`<line x1="${x}" y1="252" x2="${x-9}" y2="262"/>`;
+  $("hatch").innerHTML=s;
+  $("axes").innerHTML=arrow(30,250,64,250,"var(--ink)",1.5)+arrow(30,250,30,216,"var(--ink)",1.5);
+})();
+
+function drawCell(sw){
+  const hp=HPX*H/HMAX, yt=YB-hp, vf=velFrac()*VPX;
+  const vx=i=>X0+Math.min(1.04,u[i]/V)*vf;
+  $("fluid").setAttribute("y",yt); $("fluid").setAttribute("height",hp);
+  for(const id of ["topplate","toptex"]){ const e=$(id), y=id==="toptex"? yt-5:yt; e.setAttribute("y1",y); e.setAttribute("y2",y); }
+  $("toptex").setAttribute("stroke-dashoffset",(-texOff).toFixed(1));
+  let pts=`${X0},${YB}`;
+  for(let i=0;i<=N;i++) pts+=` ${vx(i).toFixed(1)},${(YB-hp*i/N).toFixed(1)}`;
+  $("profline").setAttribute("points",pts);
+  $("prof").setAttribute("points",pts+` ${X0},${yt.toFixed(1)}`);
+  const n=Math.max(2,Math.min(9,Math.floor(hp/17))); let a="";
+  for(let k=1;k<=n;k++){ const i=Math.round(k/(n+1)*N), y=YB-hp*i/N; a+=arrow(X0,y,vx(i),y,"var(--vel)",1.6); }
+  $("varrows").innerHTML=a;
+  $("vplate").innerHTML=arrow(X0,yt-16,Math.max(X0+vf,X0+6),yt-16,"var(--vel)",2.2)+
+    `<text x="${X0}" y="${yt-24}" font-size="15" style="fill:var(--vel)"><tspan class="m" font-size="18">v</tspan> = ${fVel(V)}</text>`;
+  const vl=$("vlabel"); vl.setAttribute("x",Math.min(vx(Math.round(N*0.55))+10,345)); vl.setAttribute("y",YB-hp*0.55+5);
+  vl.innerHTML = hp>60 ? `v<tspan font-size="10" dy="4" font-style="normal">1</tspan><tspan dy="-4">(t, x</tspan><tspan font-size="10" dy="4" font-style="normal">2</tspan><tspan dy="-4">)</tspan>` : "";
+  // shear stress distribution, drawn linearly; its steady length is log-scaled over the range of the flow-curve axis
+  const dy=H/N, sss=sigOf(V/H), F=CFG[mode].F, Lss=20+60*Math.min(1,Math.max(0,(Math.log10(sss)-F[0])/(F[1]-F[0])));
+  const Ls=i=>Math.min(105,Math.max(-38,Lss*sigOf((u[i+1]-u[i])/dy)/sss));
+  let sp=`${(XS-Ls(0)).toFixed(1)},${YB}`;
+  for(let i=0;i<N;i++) sp+=` ${(XS-Ls(i)).toFixed(1)},${(YB-hp*(i+0.5)/N).toFixed(1)}`;
+  sp+=` ${(XS-Ls(N-1)).toFixed(1)},${yt.toFixed(1)}`;
+  $("sline").setAttribute("points",sp);
+  $("sprof").setAttribute("points",`${XS},${YB} ${sp} ${XS},${yt.toFixed(1)}`);
+  let sl=`<line x1="${XS}" x2="${XS}" y1="${yt}" y2="${YB}" stroke="var(--stress)" stroke-width="1"/>`;
+  for(let k=1;k<=n;k++){ const i=Math.min(N-1,Math.round(k/(n+1)*N)), y=YB-hp*(i+0.5)/N; sl+=arrow(XS,y,XS-Ls(i),y,"var(--stress)",1.5); }
+  $("slines").innerHTML=sl;
+  $("sarrow").innerHTML=`<text x="${XS}" y="285" text-anchor="end" font-size="15" style="fill:var(--stress)"><tspan class="m" font-size="18">σ</tspan><tspan font-size="11" dy="3">12</tspan><tspan dy="-3"> = ${fStress(sw)}</tspan></text>`;
+  $("hdim").innerHTML=arrow(430,(yt+YB)/2,430,yt+2,"var(--ink)",1.2)+arrow(430,(yt+YB)/2,430,YB-2,"var(--ink)",1.2)+
+    `<text x="440" y="${(yt+YB)/2+5}" class="m" font-size="19">h</text>`;
+}
+
+// ---------- plots ----------
+const PL={l:50,r:12,t:10,b:42,w:300,h:250, x0:1,x1:4};
+const plots={ F:{el:$("pF"),y0:-2,y1:4,ytitle:'<tspan class="m">σ</tspan>₁₂ (Pa)',color:"var(--stress)"}, V:{el:$("pV"),y0:-3.4,y1:0.4,ytitle:'<tspan class="m">η</tspan> (Pa·s)',color:"var(--accent)"} };
+const px=lx=>PL.l+(lx-PL.x0)/(PL.x1-PL.x0)*(PL.w-PL.l-PL.r);
+const py=(p,ly)=>PL.h-PL.b-(ly-p.y0)/(p.y1-p.y0)*(PL.h-PL.t-PL.b);
+const pow=n=>`10<tspan dy="-4" font-size="9">${String(n).replace("-","−")}</tspan>`;
+function initPlot(p){
+  const xm=(PL.l+PL.w-PL.r)/2, ys=(p.y1-p.y0>7)?2:1; let s='<g class="grid">';
+  for(let n=Math.ceil(PL.x0);n<=PL.x1;n++) s+=`<line x1="${px(n)}" x2="${px(n)}" y1="${PL.t}" y2="${PL.h-PL.b}"/>`;
+  for(let n=Math.ceil(p.y0);n<=p.y1;n++) s+=`<line x1="${PL.l}" x2="${PL.w-PL.r}" y1="${py(p,n)}" y2="${py(p,n)}"/>`;
+  s+='</g>';
+  for(let n=Math.ceil(PL.x0);n<=PL.x1;n++) s+=`<text class="tick" text-anchor="middle" x="${px(n)}" y="${PL.h-PL.b+16}">${pow(n)}</text>`;
+  for(let n=Math.ceil(p.y0);n<=p.y1;n++) if(n%ys===0) s+=`<text class="tick" text-anchor="end" x="${PL.l-5}" y="${py(p,n)+4}">${pow(n)}</text>`;
+  s+=`<path class="axis" d="M${PL.l},${PL.t}V${PL.h-PL.b}H${PL.w-PL.r}"/>`;
+  s+=`<text class="axt m" x="${xm-22}" y="${PL.h-6}">γ</text><circle cx="${xm-17.5}" cy="${PL.h-17}" r="1.2" fill="var(--ink)"/><text class="axt" x="${xm-12}" y="${PL.h-6}">(s⁻¹)</text>`;
+  s+=`<text class="axt" text-anchor="middle" transform="translate(13,${(PL.t+PL.h-PL.b)/2}) rotate(-90)">${p.ytitle}</text>`;
+  s+='<rect class="band" width="0" height="0"/><polyline class="model"/><g class="data"></g><circle class="live" r="5.5"/>';
+  p.el.innerHTML=s; p.data=p.el.querySelector(".data"); p.live=p.el.querySelector(".live"); p.model=p.el.querySelector(".model");
+  p.live.setAttribute("stroke",p.color);
+}
+function drawModel(){            // underlying Carreau-Yasuda curve, shown only while editing
+  const p=plots.V; let s="";
+  if(mode==="NN"&&editing) for(let k=0;k<=90;k++){ const lx=PL.x0+(PL.x1-PL.x0)*k/90, ly=Math.log10(etaOf(Math.pow(10,lx)));
+    if(ly>=p.y0&&ly<=p.y1) s+=`${px(lx).toFixed(1)},${py(p,ly).toFixed(1)} `; }
+  p.model.setAttribute("points",s);
+}
+function drawRecorded(){
+  for(const key of ["F","V"]){ const p=plots[key]; let s=""; const groups={};
+    for(const d of rec[mode]) (groups[d.key]=groups[d.key]||[]).push(d);
+    for(const g of Object.values(groups)){ g.sort((a,b)=>a.gd-b.gd);
+      const P=g.map(d=>[px(Math.log10(d.gd)), py(p,Math.log10(key==="F"? d.sig : d.sig/d.gd))]);
+      if(P.length>1) s+=`<polyline class="recline" points="${P.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ")}"/>`;
+      g.forEach((d,i)=>{ s+=`<circle class="rec" r="4" cx="${P[i][0].toFixed(1)}" cy="${P[i][1].toFixed(1)}"><title>shear rate ${fRate(d.gd)}, σ₁₂ = ${fStress(d.sig)}, η = ${fEta(d.sig/d.gd)}</title></circle>`; });
+    }
+    p.data.innerHTML=s; }
+}
+function drawLive(gd,sw){
+  const lx=px(Math.max(PL.x0,Math.min(PL.x1,Math.log10(gd))));
+  const vals={F:sw, V:sw/gd};
+  for(const key of ["F","V"]){ const p=plots[key]; const ly=vals[key]>0? Math.log10(vals[key]) : -99;
+    p.live.setAttribute("cx",lx.toFixed(1)); p.live.setAttribute("cy",py(p,Math.max(p.y0,Math.min(p.y1,ly))).toFixed(1));
+    p.live.setAttribute("stroke-dasharray", steady? "none":"3 3"); }
+}
+
+// ---------- tensor ----------
+function mat(c){ return '<span class="mat">'+c.map(x=>x==="0"? '<i class="z">0</i>' : x).join("")+'</span>'; }
+function term(inner,cap){ return `<div class="term"><div class="row">${inner}</div><small>${cap}</small></div>`; }
+function drawTensor(sw,gw){
+  const s=`<b>${fSg(sw,fNum)}</b>`, g=`<b>${fSg(gw/2,fNum)}</b>`, mp='<span>−<span class="m">p</span></span>', nn=mode==="NN";
+  const n1=nn? N1of(sw):0, n2=nn? N2of(sw):0, on=nn&&n1>1e-9;   // components with sigma33(elastic) = 0: 11 = N1 + N2, 22 = N2
+  const e11=on? `<b>${fNum(n1+n2)}</b>`:"0", e22=on? `<b>−${fNum(-n2)}</b>`:"0";
+  const t11=on? `<span>−<span class="m">p</span> + <b>${fNum(n1+n2)}</b></span>`:mp, t22=on? `<span>−<span class="m">p</span> − <b>${fNum(-n2)}</b></span>`:mp;
+  const op=t=>`<div class="op">${t}</div>`;
+  $("tensor").innerHTML=
+    term(mat([t11,s,"0", s,t22,"0", "0","0",mp]),"total (Cauchy)<br>stress tensor")+op("=")+
+    term('−<span class="m">p</span> '+mat(["1","0","0","0","1","0","0","0","1"]),"isotropic<br>pressure")+op("+")+
+    term(`2 × ${fNum(etaOf(gw))} `+mat(["0",g,"0", g,"0","0", "0","0","0"]),'viscous contribution<br>2<span class="m">η</span> × (entries <span class="gd">γ</span>/2)')+op("+")+
+    term(mat([e11,"0","0","0",e22,"0","0","0","0"]),"elastic<br>contribution");
+}
+
+// ---------- UI ----------
+function readInputs(){
+  const c=CFG[mode], vv=+$("v").value;
+  V=c.vlog? Math.min(c.vmax,Math.pow(10,vv)) : vv; H=+$("h").value*1e-3; ETA=ETA_W*Math.pow(10,+$("eta").value);
+  cy.eta0=Math.pow(10,+$("cEta").value); cy.lam=Math.pow(10,+$("cLam").value); cy.a=+$("cA").value; cy.n=+$("cN").value;
+  $("vOut").textContent=fVel(V); $("hOut").textContent=(H*1e3).toFixed(2)+" mm"; $("etaOut").textContent=fEta(ETA);
+  $("cEtaOut").textContent=sig(cy.eta0)+" Pa·s"; $("cLamOut").textContent=sig(cy.lam)+" s";
+  $("cAOut").textContent=cy.a.toFixed(2); $("cNOut").textContent=cy.n.toFixed(2);
+}
+function showView(){
+  const nn=mode==="NN";
+  $("flowCtl").hidden=editing; $("editCtl").hidden=!editing;
+  $("ctlTitle").textContent=editing? "Non-Newtonian viscosity function":"Controls";
+  $("etaCtl").hidden=nn; $("editBtn").hidden=!nn; $("gN1box").hidden=!nn; $("gN2box").hidden=!nn;
+  $("eqN").hidden=nn; $("eqNN").hidden=!nn; $("eqCY").hidden=!nn; $("eqN12").hidden=!nn; $("noteN").hidden=nn; $("noteNN").hidden=!nn;
+  drawModel(); applyTab();
+}
+function setMode(m){
+  vPos[mode]=$("v").value; mode=m; editing=false;
+  const c=CFG[m], vs=$("v");
+  if(c.vlog){ vs.min=Math.log10(c.vmin); vs.max=Math.log10(c.vmax).toFixed(3); vs.step=0.001; $("vLo").textContent="10 µm/s"; $("vHi").textContent="1.3 m/s"; }
+  else { vs.min=c.vmin; vs.max=c.vmax; vs.step=0.01; $("vLo").textContent="0.01 m/s"; $("vHi").textContent="1 m/s"; }
+  vs.value=vPos[m];
+  if(m==="NN"&&!cyReady){       // a randomised fluid the first time the non-Newtonian part is opened
+    const r=(a,b)=>a+Math.random()*(b-a);
+    $("cEta").value=r(1,3.5).toFixed(2); $("cLam").value=r(-2,0.5).toFixed(2); $("cA").value=(Math.round(r(0.6,3)/0.05)*0.05).toFixed(2); $("cN").value=r(0.15,0.7).toFixed(2);
+    cyReady=true; }
+  PL.x0=c.x[0]; PL.x1=c.x[1]; plots.F.y0=c.F[0]; plots.F.y1=c.F[1]; plots.V.y0=c.V[0]; plots.V.y1=c.V[1];
+  initPlot(plots.F); initPlot(plots.V);
+  readInputs(); fromRest(); drawRecorded(); initInput(); flowsChanged(); showView(); $("msg").textContent="";
+}
+$("mN").addEventListener("change",()=>setMode("N"));
+$("mNN").addEventListener("change",()=>setMode("NN"));
+$("v").addEventListener("input",()=>{ readInputs(); tPhys=0; tScr=0; steady=false; $("msg").textContent=""; });
+$("h").addEventListener("input",()=>{
+  // keep each fluid layer's velocity at its height above the fixed plate; fluid in a newly opened layer moves with the plate
+  const Hold=H, old=Float64Array.from(u); readInputs();
+  for(let i=0;i<=N;i++){ const f=(i/N)*H/Hold*N; if(f>=N) u[i]=V; else { const j=Math.floor(f); u[i]=old[j]+(old[j+1]-old[j])*(f-j); } }
+  u[N]=V; tPhys=0; tScr=0; steady=false; $("msg").textContent=""; });
+$("eta").addEventListener("input",()=>{ readInputs(); flowsChanged(); $("msg").textContent=""; });
+for(const id of ["cEta","cLam","cA","cN"]) $(id).addEventListener("input",()=>{ readInputs(); drawModel(); flowsChanged(); $("msg").textContent=""; });
+$("editBtn").addEventListener("click",()=>{ editing=true; showView(); $("backBtn").focus(); });
+$("backBtn").addEventListener("click",()=>{ editing=false; showView(); $("editBtn").focus(); });
+$("rest").addEventListener("click",()=>{ if(tab==="flows"){ u2.fill(0); flowsChanged(); } else fromRest(); $("msg").textContent=""; });
+$("clear").addEventListener("click",()=>{ rec[mode].length=0; drawRecorded(); $("msg").textContent="Points cleared."; });
+$("rec").addEventListener("click",()=>{
+  if(!steady) return;
+  const gd=V/H, sg=sigOf(gd), key=fluidKey();
+  if(rec[mode].some(d=>d.key===key && Math.abs(d.gd/gd-1)<1e-9)){ $("msg").textContent="This point is already recorded. Change the velocity or the gap for a new shear rate."; return; }
+  rec[mode].push({gd,sig:sg,key}); drawRecorded();
+  $("msg").textContent=`Recorded: shear rate ${fRate(gd)}, σ₁₂ = ${fStress(sg)}, η = ${fEta(sg/gd)}.`;
+});
+
+function render(){
+  const gd=V/H, gw=Math.max(0,(u[1]-u[0])/(H/N)), sw=sigOf(gw);
+  steady=Math.abs(gw-gd)<=0.01*gd;
+  const st=$("status"); st.textContent=steady? "Steady state":"Transient"; st.classList.toggle("ok",steady);
+  $("rec").disabled=!steady;
+  $("gS").textContent=fStress(sw); $("gG").textContent=fRate(gd);
+  $("tK").textContent=steady? "Steady after":"Elapsed time"; $("gT").textContent=tPhys>0? fTime(tPhys) : "—";
+  $("gSlow").textContent="× "+fBig(screenTime()/tSteady()/(steady?1:boost()));
+  if(mode==="NN"){ $("gN1").textContent=fStress(N1of(sw)); const n2=-N2of(sw); $("gN2").textContent=(n2>=1e-6?"−":"")+fStress(n2); }
+  drawCell(sw); drawLive(gd,sw); drawTensor(sw,gw);
+}
+
+// ================= Example flows: two moving plates and a pressure difference =================
+let tab="law";
+const L2=0.01, IX=[-2,5];                        // channel length for the pressure difference (m); shear-rate axis of the input plot
+const u2=new Float64Array(N+1), us2=new Float64Array(N+1), tmp2=new Float64Array(N+1);
+let VU=0.5, VL=0, H2=0.6e-3, P1=0, P2=0, PMAX=1e5, G2=0, S2=1, SS2=1, SD2=1, probe=0;
+let tPhys2=0, tScr2=0, steady2=false, texU=0, texL=0;
+plots.I={el:$("pI"),y0:-3.4,y1:0.4,ytitle:'<tspan class="m">η</tspan> (Pa·s)',color:"var(--accent)"};
+const hide=(id,b)=>$(id).toggleAttribute("hidden",b);
+const boost2=()=> tScr2>5 ? Math.pow(2,tScr2-5) : 1;
+const maxAbs=a=>{ let m=0; for(let i=0;i<a.length;i++) m=Math.max(m,Math.abs(a[i])); return m; };
+function fV2(v){ const a=Math.abs(v), sg=v<0?"−":""; if(a<1e-10) return "0 m/s"; if(a>=0.1) return sg+sig(a)+" m/s"; if(a>=1e-4) return sg+sig(a*1e3)+" mm/s"; if(a>=1e-7) return sg+sig(a*1e6)+" µm/s"; return sg+sig(a*1e9)+" nm/s"; }
+function withX(fn){ const a=PL.x0, b=PL.x1; PL.x0=IX[0]; PL.x1=IX[1]; fn(); PL.x0=a; PL.x1=b; }
+
+// the pressure sliders run from 0 to PMAX: the pressure difference that gives a wall shear rate of 6000 1/s in a 1 mm gap
+// (a mean velocity of 1 m/s for a Newtonian fluid), rounded to 1-2-5
+function nice(x){ const e=Math.pow(10,Math.floor(Math.log10(x))), m=x/e; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*e; }
+function readFlows(){
+  VU=+$("vU").value; VL=+$("vL").value; H2=+$("h2").value*1e-3; probe=+$("probe").value;
+  PMAX=nice(2*L2*sigOf(6000)/HMAX);
+  P1=+$("p1").value*PMAX; P2=+$("p2").value*PMAX; G2=(P1-P2)/L2;
+  $("vUOut").textContent=VU.toFixed(2).replace("-","−")+" m/s"; $("vLOut").textContent=VL.toFixed(2).replace("-","−")+" m/s";
+  $("h2Out").textContent=(H2*1e3).toFixed(2)+" mm"; $("p1Out").textContent=fStress(P1); $("p2Out").textContent=fStress(P2);
+  $("pHi1").textContent=$("pHi2").textContent=fStress(PMAX); $("probeOut").textContent=probe.toFixed(2);
+  $("tensorWhere").innerHTML= tab==="flows" ? `at <span class="m" style="text-transform:none">x</span><sub>2</sub>/<span class="m" style="text-transform:none">h</span> = ${probe.toFixed(2)}` : "at the fixed plate";
+}
+// steady solution (repeated implicit steps with a very large time step); it sets the drawing scales
+function computeTarget(){
+  for(let i=0;i<=N;i++) us2[i]=VL+(VU-VL)*i/N;
+  for(let k=0;k<80;k++) solve(us2,H2,VL,VU,G2,1e4*tScaleOf(us2,H2));
+  const dy=H2/N; let m=0; for(let i=0;i<N;i++) m=Math.max(m,Math.abs(sigOf((us2[i+1]-us2[i])/dy)));
+  S2=Math.max(maxAbs(us2),Math.abs(VU),Math.abs(VL),1e-12); SS2=Math.max(m,1e-12);
+  SD2= sigOf((us2[1]-us2[0])/dy)<0 ? -1 : 1;      // side on which the stress magnitude is drawn: from the steady stress at the lower plate
+}
+function flowsChanged(){ readFlows(); computeTarget(); tPhys2=0; tScr2=0; steady2=false; }
+
+function drawFlows(){
+  const XA=90, XB=420, XS2=178, XV=312, VW=76, SW=55, YB=250, hp=HPX*H2/HMAX, yt=YB-hp, dy=H2/N;
+  const Sc=Math.max(S2,maxAbs(u2)), n=Math.max(2,Math.min(9,Math.floor(hp/17)));
+  const vx=i=>XV+u2[i]/Sc*VW, yv=i=>YB-hp*i/N;
+  const sx=i=>XS2-SD2*Math.min(1.1,Math.abs(sigOf((u2[i+1]-u2[i])/dy))/SS2)*SW, ys=i=>YB-hp*(i+0.5)/N;
+  let s=`<rect x="${XA}" y="${yt}" width="${XB-XA}" height="${hp}" fill="var(--fluid)"/>`;
+  // shear stress distribution: the magnitude |sigma12| is drawn on one side, so it does not flip where dv1/dx2 changes sign
+  let sp=`${sx(0).toFixed(1)},${YB}`; for(let i=0;i<N;i++) sp+=` ${sx(i).toFixed(1)},${ys(i).toFixed(1)}`; sp+=` ${sx(N-1).toFixed(1)},${yt.toFixed(1)}`;
+  s+=`<polygon points="${XS2},${YB} ${sp} ${XS2},${yt.toFixed(1)}" fill="var(--stress)" opacity=".14"/><line x1="${XS2}" x2="${XS2}" y1="${yt}" y2="${YB}" stroke="var(--stress)" stroke-width="1"/>`;
+  for(let k=1;k<=n;k++){ const i=Math.min(N-1,Math.round(k/(n+1)*N)); s+=arrow(XS2,ys(i),sx(i),ys(i),"var(--stress)",1.5); }
+  s+=`<polyline points="${sp}" fill="none" stroke="var(--stress)" stroke-width="2"/>`;
+  // velocity distribution
+  let vp=""; for(let i=0;i<=N;i++) vp+=` ${vx(i).toFixed(1)},${yv(i).toFixed(1)}`;
+  s+=`<polygon points="${XV},${YB}${vp} ${XV},${yt.toFixed(1)}" fill="var(--vel)" opacity=".16"/><line x1="${XV}" x2="${XV}" y1="${yt}" y2="${YB}" stroke="var(--vel)" stroke-width="1"/>`;
+  for(let k=1;k<=n;k++){ const i=Math.round(k/(n+1)*N); s+=arrow(XV,yv(i),vx(i),yv(i),"var(--vel)",1.6); }
+  s+=`<polyline points="${vp.trim()}" fill="none" stroke="var(--vel)" stroke-width="2"/>`;
+  // position at which the tensor is evaluated
+  const yp=YB-hp*probe; s+=`<line x1="${XA}" x2="${XB}" y1="${yp}" y2="${yp}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4"/>`;
+  // plates, with moving marks
+  for(const [y,off,d] of [[yt,texU,-5],[YB,texL,5]])
+    s+=`<line x1="${XA}" x2="${XB}" y1="${y}" y2="${y}" stroke="var(--plate)" stroke-width="3.5"/><line x1="${XA}" x2="${XB}" y1="${y+d}" y2="${y+d}" stroke="var(--muted)" stroke-width="5" stroke-dasharray="2 16" stroke-dashoffset="${(-off).toFixed(1)}"/>`;
+  const lab=(y,name,v)=>`<text x="${XA}" y="${y}" font-size="16" style="fill:var(--vel)"><tspan class="m" font-size="20">v</tspan><tspan font-size="12" dy="-7">${name}</tspan><tspan dy="7"> = ${fV2(v)}</tspan></text>`;
+  s+=arrow(XV,yt-14,XV+VU/Sc*VW,yt-14,"var(--vel)",2.2)+lab(yt-12,"upper",VU)+arrow(XV,YB+14,XV+VL/Sc*VW,YB+14,"var(--vel)",2.2)+lab(YB+26,"lower",VL);
+  const pl=(x,k,p)=>`<text x="${x}" y="${(yt+YB)/2-4}" text-anchor="middle" class="m" font-size="22">p<tspan font-size="13" dy="4" font-style="normal">${k}</tspan></text><text x="${x}" y="${(yt+YB)/2+18}" text-anchor="middle" font-size="15">${fStress(p)}</text>`;
+  s+=pl(46,1,P1)+pl(464,2,P2);
+  s+=arrow(403,(yt+YB)/2,403,yt+3,"var(--ink)",1.2)+arrow(403,(yt+YB)/2,403,YB-3,"var(--ink)",1.2)+`<text x="388" y="${(yt+YB)/2+5}" class="m" font-size="18">h</text>`;
+  s+=arrow(22,292,56,292,"var(--ink)",1.5)+arrow(22,292,22,258,"var(--ink)",1.5)+
+     `<text x="60" y="296" class="m" font-size="16">x</text><text x="68" y="300" font-size="10">1</text><text x="28" y="262" class="m" font-size="16">x</text><text x="36" y="266" font-size="10">2</text>`;
+  $("cell2").innerHTML=s;
+}
+function initInput(){ const p=plots.I, c=CFG[mode]; p.y0=c.V[0]; p.y1=c.V[1]; withX(()=>initPlot(p)); p.band=p.el.querySelector(".band"); p.live.setAttribute("r",0); }
+function drawInput(){ withX(()=>{
+  const p=plots.I, dy=H2/N; let s="";
+  for(let k=0;k<=90;k++){ const lx=PL.x0+(PL.x1-PL.x0)*k/90, ly=Math.log10(etaOf(Math.pow(10,lx))); if(ly>=p.y0&&ly<=p.y1) s+=`${px(lx).toFixed(1)},${py(p,ly).toFixed(1)} `; }
+  p.model.setAttribute("points",s);
+  let lo=Infinity, hi=0; for(let i=0;i<N;i++){ const g=Math.abs(u2[i+1]-u2[i])/dy; lo=Math.min(lo,g); hi=Math.max(hi,g); }
+  const cl=g=>px(Math.max(PL.x0,Math.min(PL.x1,Math.log10(Math.max(g,1e-30))))), xa=cl(lo), xb=cl(hi);
+  p.band.setAttribute("x",xa.toFixed(1)); p.band.setAttribute("y",PL.t); p.band.setAttribute("width",hi>0? Math.max(2,xb-xa).toFixed(1):0); p.band.setAttribute("height",PL.h-PL.b-PL.t);
+}); }
+function renderFlows(){
+  const st=$("status2"); st.textContent=steady2? "Steady state":"Transient"; st.classList.toggle("ok",steady2);
+  const dy=H2/N, ts=tScaleOf(u2,H2);
+  let m=0, mean=0; for(let i=0;i<=N;i++){ if(Math.abs(u2[i])>Math.abs(m)) m=u2[i]; mean+=(i===0||i===N? 0.5:1)*u2[i]; } mean/=N;
+  $("fDp").textContent=fSg(P1-P2,fStress)+" over "+(L2*1e3)+" mm";
+  $("fSU").textContent=fSg(-(sigOf((u2[N]-u2[N-1])/dy)-G2*dy/2),fStress); $("fSL").textContent=fSg(sigOf((u2[1]-u2[0])/dy)+G2*dy/2,fStress);   // force per area of the fluid on each plate, positive in x1; extrapolated half a cell to the wall
+  $("fVmax").textContent=fV2(m); $("fVmean").textContent=fV2(mean);
+  $("fTK").textContent=steady2? "Steady after":"Elapsed time"; $("fT").textContent=tPhys2>0? fTime(tPhys2) : "—";
+  $("fSlow").textContent="× "+fBig(screenTimeOf(ts)/ts/(steady2?1:boost2()));
+  drawFlows(); drawInput();
+  const j=Math.min(N-1,Math.floor(probe*N)), gp=(u2[j+1]-u2[j])/dy; drawTensor(sigOf(gp),gp);
+}
+function frameFlows(dtF){
+  const ts=tScaleOf(u2,H2); let dt=dtF*ts/screenTimeOf(ts);
+  if(!steady2){ tScr2+=dtF; dt*=boost2(); }
+  tmp2.set(u2); tmp2[0]=VL; tmp2[N]=VU;
+  const k=steady2? 1:4; for(let q=0;q<k;q++) solve(u2,H2,VL,VU,G2,dt/k);
+  let d=0; for(let i=0;i<=N;i++) d=Math.max(d,Math.abs(u2[i]-tmp2[i]));
+  // steady when the remaining change, estimated from the current rate of change, is below 1 % of the velocity scale
+  steady2 = d/dt*ts/4.44 <= 0.01*Math.max(S2,maxAbs(u2));
+  if(!steady2) tPhys2+=dt;
+  if(!reduce){ const Sc=Math.max(S2,1e-12); texU=(texU+dtF*120*VU/Sc+18)%18; texL=(texL+dtF*120*VL/Sc+18)%18; }
+  renderFlows();
+}
+function applyTab(){
+  const fl=tab==="flows";
+  hide("cell",fl); hide("cell2",!fl); hide("lawCtl",fl); hide("flowsCtl",!fl); hide("lawGauges",fl); hide("flowGauges",!fl);
+  hide("plotsPanel",fl); hide("viscPanel",!fl); hide("flowActions",!fl); hide("probeCtl",!fl); hide("legA",!fl); hide("legB",!fl);
+  $("bench").classList.toggle("flows",fl);
+  $("cellTitle").textContent=fl? "Flow between two infinite parallel plates":"Simple shear between two infinite parallel plates";
+  const eq=tab==="eq"; for(const [id,t] of [["tabLaw","law"],["tabFlows","flows"],["tabEq","eq"]]) $(id).setAttribute("aria-selected",tab===t);
+  hide("bench",eq); hide("tensorPanel",eq); hide("modes",eq); hide("eqView",!eq);
+  readFlows();
+}
+for(const id of ["vU","vL","p1","p2"]) $(id).addEventListener("input",flowsChanged);
+$("probe").addEventListener("input",readFlows);
+$("h2").addEventListener("input",()=>{
+  const Hold=H2, old=Float64Array.from(u2), vTop=+$("vU").value, Hn=+$("h2").value*1e-3;
+  for(let i=0;i<=N;i++){ const f=(i/N)*Hn/Hold*N; if(f>=N) u2[i]=vTop; else { const j=Math.floor(f); u2[i]=old[j]+(old[j+1]-old[j])*(f-j); } }
+  flowsChanged(); });
+$("rest2").addEventListener("click",()=>{ u2.fill(0); flowsChanged(); });
+$("tabLaw").addEventListener("click",()=>{ tab="law"; editing=false; showView(); $("msg").textContent=""; });
+$("tabFlows").addEventListener("click",()=>{ tab="flows"; editing=false; showView(); $("msg").textContent=""; });
+$("tabEq").addEventListener("click",()=>{ tab="eq"; editing=false; showView(); });
+
+let last=0;
+function frame(ts){
+  const dtF=Math.min(0.05,(ts-last)/1000||0.016); last=ts;
+  if(tab==="eq"){ requestAnimationFrame(frame); return; }
+  if(tab==="flows"){ frameFlows(dtF); requestAnimationFrame(frame); return; }
+  let dt=dtF*tSteady()/screenTime();
+  if(!steady){ tScr+=dtF; dt*=boost(); for(let k=0;k<4;k++) step(dt/4); tPhys+=dt; } else { u[N]=V; step(dt); }
+  if(!reduce) texOff=(texOff+dtF*140*velFrac())%18;
+  render(); requestAnimationFrame(frame);
+}
+initPlot(plots.F); initPlot(plots.V);
+readInputs(); fromRest(); initInput(); flowsChanged(); u2.fill(0); showView(); render();
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
