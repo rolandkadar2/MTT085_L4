@@ -57,7 +57,7 @@ svg .m{font-family:var(--math);font-style:italic}
 .eqs{font-family:var(--math);font-size:1rem;display:flex;flex-direction:column;gap:12px;overflow-x:auto;padding-bottom:2px}
 .eqs>span{white-space:nowrap}
 #viscPanel svg{max-width:460px}
-@media (min-width:641px){ .bench.flows{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)} .bench.flows #ctlPanel{grid-column:2;grid-row:1 / span 2} .bench.flows #viscPanel{grid-column:1;grid-row:2} }
+@media (min-width:641px){ .bench.flows{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)} .bench.flows #ctlCol{grid-column:2;grid-row:1 / span 2} .bench.flows #viscPanel{grid-column:1;grid-row:2} }
 .eqs sup,.eq sup{font-size:.7em}
 .doc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:26px 38px}
 .doc section{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -66,6 +66,7 @@ svg .m{font-family:var(--math);font-style:italic}
 .modes{display:flex;flex-wrap:wrap;gap:6px 22px;font-weight:500}
 .modes label{display:inline-flex;gap:7px;align-items:center;cursor:pointer}
 input[type=radio]{accent-color:var(--accent);margin:0}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .stack{display:flex;flex-direction:column;gap:14px}
 .gauge.full{grid-column:1 / -1}
 button.block{width:100%}
@@ -97,9 +98,11 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
 .status{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-weight:600;
   background:var(--bad-bg);color:var(--bad)}
 .status::before{content:"";width:9px;height:9px;border-radius:50%;border:2px solid currentColor}
+.status.off{background:var(--fluid);color:var(--muted)}
 .status.ok{background:var(--good-bg);color:var(--good)}
 .status.ok::before{content:"✓";border:0;width:auto;height:auto;line-height:1}
 button{font:inherit;font-weight:600;border-radius:4px;padding:8px 14px;cursor:pointer;border:1px solid var(--ink);background:transparent;color:var(--ink)}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
 button.primary{background:var(--ink);color:var(--panel)}
 button:disabled{opacity:.4;cursor:not-allowed}
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -163,10 +166,6 @@ footer{font-size:.8rem;color:var(--muted)}
       </svg>
       <svg id="cell2" viewBox="0 30 510 275" role="img" aria-label="Velocity and shear stress distributions between two moving plates with a pressure difference" hidden></svg>
       <p class="note" style="display:flex;flex-wrap:wrap;gap:2px 22px"><span style="color:var(--stress)">Shear stress distribution, <span id="legA" hidden>|</span><span class="m">σ</span><sub>12</sub><span id="legB" hidden>|</span>(<span class="m">t, x</span><sub>2</sub>)</span><span style="color:var(--vel)">Velocity distribution, <span class="m">v</span><sub>1</sub>(<span class="m">t, x</span><sub>2</sub>)</span></p>
-      <div class="actions" id="flowActions" hidden>
-        <span class="status" id="status2" aria-live="polite">Transient</span>
-        <button id="rest2">Start from rest</button>
-      </div>
       <div>
         <h2>1D constitutive equation</h2>
         <div class="eq" style="margin-top:8px">
@@ -180,6 +179,20 @@ footer{font-size:.8rem;color:var(--muted)}
     </section>
 
     <!-- controls -->
+    <div class="col" id="ctlCol">
+    <section class="panel" id="runPanel">
+      <h2>Simulation</h2>
+      <div class="actions">
+        <span class="status" id="status" aria-live="polite">Transient</span>
+        <button id="run">Stop</button>
+        <button id="rest">Start from rest</button>
+      </div>
+      <div class="actions" id="presets" hidden>
+        <button data-p="couette" aria-pressed="false">Couette</button>
+        <button data-p="pois" aria-pressed="false">Poiseuille</button>
+        <button data-p="back" aria-pressed="false">Couette–Poiseuille</button>
+      </div>
+    </section>
     <section class="panel" id="ctlPanel">
       <h2 id="ctlTitle">Controls</h2>
       <div class="stack" id="flowCtl">
@@ -271,6 +284,8 @@ footer{font-size:.8rem;color:var(--muted)}
       </div>
     </section>
 
+    </div>
+
     <!-- plots -->
     <section class="panel wide" id="plotsPanel">
       <h2 id="plotsTitle">Measurements (log–log)</h2>
@@ -279,9 +294,7 @@ footer{font-size:.8rem;color:var(--muted)}
         <figure><figcaption>Viscosity function</figcaption><svg id="pV" viewBox="0 0 300 250" role="img" aria-label="Viscosity function: viscosity against shear rate"></svg></figure>
       </div>
       <div class="actions">
-        <span class="status" id="status" aria-live="polite">Transient</span>
         <button class="primary" id="rec" disabled>Record viscosity point</button>
-        <button id="rest">Start from rest</button>
         <button id="clear">Clear points</button>
       </div>
       <div id="msg" aria-live="polite"></div>
@@ -369,9 +382,9 @@ footer{font-size:.8rem;color:var(--muted)}
         <h2>Numerics and drawing</h2>
         <ul>
           <li>Finite differences on 64 intervals across the gap, implicit Euler in time, viscosity taken from the previous time step.</li>
-          <li>First page: positive <span class="m">σ</span><sub>12</sub> is drawn to the left. Example flows: the magnitude |<span class="m">σ</span><sub>12</sub>| is drawn; the component <span class="m">σ</span><sub>12</sub> = <span class="m">η</span> ∂<span class="m">v</span><sub>1</sub>/∂<span class="m">x</span><sub>2</sub> itself changes sign where the velocity gradient does. The plate readouts give the force per area of the fluid on each plate, positive in <span class="m">x</span><sub>1</sub>.</li>
+          <li>First page: positive <span class="m">σ</span><sub>12</sub> is drawn to the left. Example flows: in pure pressure flow (no relative plate motion) the magnitude |<span class="m">σ</span><sub>12</sub>| is drawn. When the plates move relative to each other the signed <span class="m">σ</span><sub>12</sub> = <span class="m">η</span> ∂<span class="m">v</span><sub>1</sub>/∂<span class="m">x</span><sub>2</sub> is drawn, so its change of sign in Couette–Poiseuille flow is visible. The plate readouts give the force per area of the fluid on each plate, positive in <span class="m">x</span><sub>1</sub>.</li>
           <li>First page: arrow lengths follow the sliders (linear velocity for the Newtonian fluid, logarithmic otherwise; logarithmic stress).</li>
-          <li>Example flows: arrow lengths are relative to the largest steady velocity and stress. The pressure sliders end at the Δ<span class="m">p</span> that gives a wall shear rate of 6000 s⁻¹ in a 1 mm gap.</li>
+          <li>Example flows: arrow lengths are relative to the largest steady velocity and stress at the current gap or at the largest gap (1 mm), whichever is larger, so the effect of the gap stays visible. The pressure sliders end at the Δ<span class="m">p</span> that gives a wall shear rate of 6000 s⁻¹ in a 1 mm gap.</li>
         </ul>
       </section>
     </div>
@@ -609,7 +622,7 @@ $("rec").addEventListener("click",()=>{
 function render(){
   const gd=V/H, gw=Math.max(0,(u[1]-u[0])/(H/N)), sw=sigOf(gw);
   steady=Math.abs(gw-gd)<=0.01*gd;
-  const st=$("status"); st.textContent=steady? "Steady state":"Transient"; st.classList.toggle("ok",steady);
+  setStatus($("status"),steady);
   $("rec").disabled=!steady;
   $("gS").textContent=fStress(sw); $("gG").textContent=fRate(gd);
   $("tK").textContent=steady? "Steady after":"Elapsed time"; $("gT").textContent=tPhys>0? fTime(tPhys) : "—";
@@ -622,7 +635,8 @@ function render(){
 let tab="law";
 const L2=0.01, IX=[-2,5];                        // channel length for the pressure difference (m); shear-rate axis of the input plot
 const u2=new Float64Array(N+1), us2=new Float64Array(N+1), tmp2=new Float64Array(N+1);
-let VU=0.5, VL=0, H2=0.6e-3, P1=0, P2=0, PMAX=1e5, G2=0, S2=1, SS2=1, SD2=1, probe=0;
+let VU=0.5, VL=0, H2=0.6e-3, P1=0, P2=0, PMAX=1e5, G2=0, S2=1, SS2=1, SD2=1, SR2=1, SSR2=1, probe=0;
+const uref=new Float64Array(N+1);
 let tPhys2=0, tScr2=0, steady2=false, texU=0, texL=0;
 plots.I={el:$("pI"),y0:-3.4,y1:0.4,ytitle:'<tspan class="m">η</tspan> (Pa·s)',color:"var(--accent)"};
 const hide=(id,b)=>$(id).toggleAttribute("hidden",b);
@@ -650,14 +664,22 @@ function computeTarget(){
   const dy=H2/N; let m=0; for(let i=0;i<N;i++) m=Math.max(m,Math.abs(sigOf((us2[i+1]-us2[i])/dy)));
   S2=Math.max(maxAbs(us2),Math.abs(VU),Math.abs(VL),1e-12); SS2=Math.max(m,1e-12);
   SD2= sigOf((us2[1]-us2[0])/dy)<0 ? -1 : 1;      // side on which the stress magnitude is drawn: from the steady stress at the lower plate
+  // drawing scales: the larger of the steady maxima at the current gap and at the largest gap (1 mm),
+  // so the effect of the gap (v_max ~ h^2 and wall stress ~ h for pressure flow) stays visible
+  for(let i=0;i<=N;i++) uref[i]=VL+(VU-VL)*i/N;
+  for(let k=0;k<80;k++) solve(uref,HMAX,VL,VU,G2,1e4*tScaleOf(uref,HMAX));
+  const dr=HMAX/N; let mr=0; for(let i=0;i<N;i++) mr=Math.max(mr,Math.abs(sigOf((uref[i+1]-uref[i])/dr)));
+  SR2=Math.max(maxAbs(uref),S2); SSR2=Math.max(mr,SS2);
 }
 function flowsChanged(){ readFlows(); computeTarget(); tPhys2=0; tScr2=0; steady2=false; }
 
 function drawFlows(){
+  // pure pressure flow (no relative plate motion): draw |sigma12|; otherwise the signed sigma12, positive to the left
+  hide("legA",Math.abs(VU-VL)>=1e-9); hide("legB",Math.abs(VU-VL)>=1e-9);
   const XA=90, XB=420, XS2=178, XV=312, VW=76, SW=55, YB=250, hp=HPX*H2/HMAX, yt=YB-hp, dy=H2/N;
-  const Sc=Math.max(S2,maxAbs(u2)), n=Math.max(2,Math.min(9,Math.floor(hp/17)));
+  const Sc=Math.max(SR2,maxAbs(u2)), n=Math.max(2,Math.min(9,Math.floor(hp/17)));
   const vx=i=>XV+u2[i]/Sc*VW, yv=i=>YB-hp*i/N;
-  const sx=i=>XS2-SD2*Math.min(1.1,Math.abs(sigOf((u2[i+1]-u2[i])/dy))/SS2)*SW, ys=i=>YB-hp*(i+0.5)/N;
+  const mag=Math.abs(VU-VL)<1e-9, sx=i=>{ const q=sigOf((u2[i+1]-u2[i])/dy)/SSR2; return XS2-(mag? SD2*Math.min(1.1,Math.abs(q)) : Math.max(-1.1,Math.min(1.1,q)))*SW; }, ys=i=>YB-hp*(i+0.5)/N;
   let s=`<rect x="${XA}" y="${yt}" width="${XB-XA}" height="${hp}" fill="var(--fluid)"/>`;
   // shear stress distribution: the magnitude |sigma12| is drawn on one side, so it does not flip where dv1/dx2 changes sign
   let sp=`${sx(0).toFixed(1)},${YB}`; for(let i=0;i<N;i++) sp+=` ${sx(i).toFixed(1)},${ys(i).toFixed(1)}`; sp+=` ${sx(N-1).toFixed(1)},${yt.toFixed(1)}`;
@@ -693,7 +715,7 @@ function drawInput(){ withX(()=>{
   p.band.setAttribute("x",xa.toFixed(1)); p.band.setAttribute("y",PL.t); p.band.setAttribute("width",hi>0? Math.max(2,xb-xa).toFixed(1):0); p.band.setAttribute("height",PL.h-PL.b-PL.t);
 }); }
 function renderFlows(){
-  const st=$("status2"); st.textContent=steady2? "Steady state":"Transient"; st.classList.toggle("ok",steady2);
+  setStatus($("status"),steady2);
   const dy=H2/N, ts=tScaleOf(u2,H2);
   let m=0, mean=0; for(let i=0;i<=N;i++){ if(Math.abs(u2[i])>Math.abs(m)) m=u2[i]; mean+=(i===0||i===N? 0.5:1)*u2[i]; } mean/=N;
   $("fDp").textContent=fSg(P1-P2,fStress)+" over "+(L2*1e3)+" mm";
@@ -705,6 +727,7 @@ function renderFlows(){
   const j=Math.min(N-1,Math.floor(probe*N)), gp=(u2[j+1]-u2[j])/dy; drawTensor(sigOf(gp),gp);
 }
 function frameFlows(dtF){
+  if(!running){ renderFlows(); return; }
   const ts=tScaleOf(u2,H2); let dt=dtF*ts/screenTimeOf(ts);
   if(!steady2){ tScr2+=dtF; dt*=boost2(); }
   tmp2.set(u2); tmp2[0]=VL; tmp2[N]=VU;
@@ -713,38 +736,50 @@ function frameFlows(dtF){
   // steady when the remaining change, estimated from the current rate of change, is below 1 % of the velocity scale
   steady2 = d/dt*ts/4.44 <= 0.01*Math.max(S2,maxAbs(u2));
   if(!steady2) tPhys2+=dt;
-  if(!reduce){ const Sc=Math.max(S2,1e-12); texU=(texU+dtF*120*VU/Sc+18)%18; texL=(texL+dtF*120*VL/Sc+18)%18; }
+  if(!reduce){ const Sc=Math.max(SR2,1e-12); texU=(texU+dtF*120*VU/Sc+18)%18; texL=(texL+dtF*120*VL/Sc+18)%18; }
   renderFlows();
 }
 function applyTab(){
   const fl=tab==="flows";
   hide("cell",fl); hide("cell2",!fl); hide("lawCtl",fl); hide("flowsCtl",!fl); hide("lawGauges",fl); hide("flowGauges",!fl);
-  hide("plotsPanel",fl); hide("viscPanel",!fl); hide("flowActions",!fl); hide("probeCtl",!fl); hide("legA",!fl); hide("legB",!fl);
+  hide("plotsPanel",fl); hide("viscPanel",!fl); hide("probeCtl",!fl); hide("presets",!fl); hide("legA",!fl); hide("legB",!fl);
   $("bench").classList.toggle("flows",fl);
   $("cellTitle").textContent=fl? "Flow between two infinite parallel plates":"Simple shear between two infinite parallel plates";
   const eq=tab==="eq"; for(const [id,t] of [["tabLaw","law"],["tabFlows","flows"],["tabEq","eq"]]) $(id).setAttribute("aria-selected",tab===t);
   hide("bench",eq); hide("tensorPanel",eq); hide("modes",eq); hide("eqView",!eq);
   readFlows();
 }
-for(const id of ["vU","vL","p1","p2"]) $(id).addEventListener("input",flowsChanged);
+for(const id of ["vU","vL","p1","p2"]) $(id).addEventListener("input",()=>{ markPreset(null); flowsChanged(); });
+// example flows: set the plate velocities and pressures, then start from rest; moving a slider afterwards overrides them
+const PRESETS={ couette:{vU:0.5,vL:0,p1:0,p2:0}, pois:{vU:0,vL:0,p1:0.5,p2:0}, back:{vU:1,vL:0,p1:0,p2:1} };
+function markPreset(k){ for(const b of document.querySelectorAll("#presets button")) b.setAttribute("aria-pressed",b.dataset.p===k); }
+for(const b of document.querySelectorAll("#presets button")) b.addEventListener("click",()=>{
+  const p=PRESETS[b.dataset.p]; for(const id in p) $(id).value=p[id];
+  markPreset(b.dataset.p); u2.fill(0); flowsChanged(); });
 $("probe").addEventListener("input",readFlows);
 $("h2").addEventListener("input",()=>{
   const Hold=H2, old=Float64Array.from(u2), vTop=+$("vU").value, Hn=+$("h2").value*1e-3;
   for(let i=0;i<=N;i++){ const f=(i/N)*Hn/Hold*N; if(f>=N) u2[i]=vTop; else { const j=Math.floor(f); u2[i]=old[j]+(old[j+1]-old[j])*(f-j); } }
   flowsChanged(); });
-$("rest2").addEventListener("click",()=>{ u2.fill(0); flowsChanged(); });
 $("tabLaw").addEventListener("click",()=>{ tab="law"; editing=false; showView(); $("msg").textContent=""; });
 $("tabFlows").addEventListener("click",()=>{ tab="flows"; editing=false; showView(); $("msg").textContent=""; });
 $("tabEq").addEventListener("click",()=>{ tab="eq"; editing=false; showView(); });
 
+// start / stop: when stopped, time is frozen; settings can still be changed and the transient runs after Start
+let running=true;
+function setStatus(el,ok){ el.textContent=!running? "Stopped" : ok? "Steady state":"Transient"; el.classList.toggle("ok",running&&ok); el.classList.toggle("off",!running); }
+function toggleRun(){ running=!running; for(const id of ["run"]){ $(id).textContent=running? "Stop":"Start"; $(id).classList.toggle("primary",!running); } }
+$("run").addEventListener("click",toggleRun);
 let last=0;
 function frame(ts){
   const dtF=Math.min(0.05,(ts-last)/1000||0.016); last=ts;
   if(tab==="eq"){ requestAnimationFrame(frame); return; }
   if(tab==="flows"){ frameFlows(dtF); requestAnimationFrame(frame); return; }
-  let dt=dtF*tSteady()/screenTime();
-  if(!steady){ tScr+=dtF; dt*=boost(); for(let k=0;k<4;k++) step(dt/4); tPhys+=dt; } else { u[N]=V; step(dt); }
-  if(!reduce) texOff=(texOff+dtF*140*velFrac())%18;
+  if(running){
+    let dt=dtF*tSteady()/screenTime();
+    if(!steady){ tScr+=dtF; dt*=boost(); for(let k=0;k<4;k++) step(dt/4); tPhys+=dt; } else { u[N]=V; step(dt); }
+    if(!reduce) texOff=(texOff+dtF*140*velFrac())%18;
+  }
   render(); requestAnimationFrame(frame);
 }
 initPlot(plots.F); initPlot(plots.V);
